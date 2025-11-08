@@ -1,0 +1,42 @@
+# Example ServiceMonitor for Pack 2
+# This ServiceMonitor will be discovered by Pack 2's VMAgent because it has pack=two label
+# It demonstrates how to configure monitoring for a custom application in Pack 2
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: example-dev-app
+    app.kubernetes.io/component: monitoring
+    pack: two  # Critical: This label ensures Pack 2's VMAgent discovers this ServiceMonitor
+  name: example-dev-app
+  namespace: dev-team
+spec:
+  # Scrape configuration
+  endpoints:
+    - interval: 30s
+      port: metrics
+      path: /metrics
+      scheme: http
+
+      # Optional: Metric relabeling
+      # metricRelabelings:
+      #   - sourceLabels: [__name__]
+      #     regex: '(request_duration_seconds|request_total)'
+      #     action: keep
+
+      # Optional: Target relabeling
+      # relabelings:
+      #   - sourceLabels: [__address__]
+      #     targetLabel: __address__
+      #     replacement: example-app:8080
+
+  # Selector to match the Service
+  selector:
+    matchLabels:
+      app: example-dev-app
+
+  # Optional: Specify which namespaces to look for services
+  namespaceSelector:
+    matchNames:
+      - dev-team

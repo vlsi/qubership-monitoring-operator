@@ -1,0 +1,124 @@
+# VMAgent for Pack 2 - DEV Team Monitoring
+# This VMAgent instance is configured to scrape metrics from both Pack 1 and Pack 2 exporters
+# using label selectors to identify targets
+
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAgent
+metadata:
+  labels:
+    name: pack-two-vmagent
+    app.kubernetes.io/name: vmagent
+    app.kubernetes.io/component: victoriametrics
+    app.kubernetes.io/part-of: monitoring
+    app.kubernetes.io/managed-by: monitoring-operator
+    pack: two
+  name: pack-two-vmagent
+  namespace: monitoring
+spec:
+  # External labels to identify metrics from Pack 2
+  externalLabels:
+    cluster: dev-cluster
+    pack: two
+
+  # Performance tuning
+  extraArgs:
+    promscrape.streamParse: "true"
+
+  # Resource allocation
+  resources:
+    limits:
+      cpu: "1"
+      memory: 2000Mi
+    requests:
+      cpu: 100m
+      memory: 500Mi
+
+  # Scrape interval
+  scrapeInterval: 30s
+
+  # Security context
+  securityContext:
+    fsGroup: 2000
+    runAsUser: 2000
+
+  # Remote write configuration - writes to Pack 2's VMSingle
+  remoteWrite:
+    - url: http://vmsingle-pack-two-vmsingle.monitoring.svc:8429/api/v1/write
+
+  # Selector Configuration for Multi-Pack Metrics Collection
+  # These selectors allow Pack 2 to collect metrics from both Pack 1 and Pack 2
+
+  selectAllByDefault: false
+
+  # ServiceScrape selectors - scrape services with pack=one OR pack=two labels
+  serviceScrapeSelector:
+    matchExpressions:
+      - key: pack
+        operator: In
+        values: ["one", "two"]
+
+  serviceScrapeNamespaceSelector:
+    matchExpressions:
+      - key: openshift.io/cluster-monitoring
+        operator: NotIn
+        values: ["true"]
+
+  # PodScrape selectors - scrape pods with pack=one OR pack=two labels
+  podScrapeSelector:
+    matchExpressions:
+      - key: pack
+        operator: In
+        values: ["one", "two"]
+
+  podScrapeNamespaceSelector:
+    matchExpressions:
+      - key: openshift.io/cluster-monitoring
+        operator: NotIn
+        values: ["true"]
+
+  # Probe selectors - probe targets with pack=one OR pack=two labels
+  probeSelector:
+    matchExpressions:
+      - key: pack
+        operator: In
+        values: ["one", "two"]
+
+  probeNamespaceSelector:
+    matchExpressions:
+      - key: openshift.io/cluster-monitoring
+        operator: NotIn
+        values: ["true"]
+
+  # NodeScrape selectors - scrape node metrics
+  nodeScrapeSelector:
+    matchExpressions:
+      - key: pack
+        operator: In
+        values: ["one", "two"]
+
+  nodeScrapeNamespaceSelector:
+    matchExpressions:
+      - key: openshift.io/cluster-monitoring
+        operator: NotIn
+        values: ["true"]
+
+  # StaticScrape selectors - static scrape configs
+  staticScrapeSelector:
+    matchExpressions:
+      - key: pack
+        operator: In
+        values: ["one", "two"]
+
+  staticScrapeNamespaceSelector:
+    matchExpressions:
+      - key: openshift.io/cluster-monitoring
+        operator: NotIn
+        values: ["true"]
+
+  # Allow arbitrary filesystem access for ServiceMonitors if needed
+  arbitraryFSAccessThroughSMs: {}
+
+  # Additional scrape configs (optional)
+  # additionalScrapeConfigs:
+  #   key: prometheus-additional.yaml
+  #   name: vm-additional-scrape-configs

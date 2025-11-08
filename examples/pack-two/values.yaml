@@ -1,0 +1,198 @@
+# Pack 2 - DEV Team Monitoring Package
+# This configuration sets up a secondary monitoring stack for development teams
+# that coexists with Pack 1 and can collect metrics from both packs.
+
+monitoringOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 200Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+# VictoriaMetrics Stack Configuration for Pack 2
+victoriametrics:
+  install: true
+
+  operator:
+    install: true
+    resources:
+      requests:
+        cpu: 200m
+        memory: 100Mi
+      limits:
+        cpu: 400m
+        memory: 200Mi
+
+  # VMAgent for Pack 2 - configured to scrape both pack=one and pack=two metrics
+  vmagent:
+    install: true
+    name: pack-two-vmagent
+    resources:
+      requests:
+        cpu: 200m
+        memory: 100Mi
+      limits:
+        cpu: 400m
+        memory: 200Mi
+    # Scrape configuration targeting multiple packs
+    selectAllByDefault: false
+    serviceScrapeSelector:
+      matchExpressions:
+        - key: pack
+          operator: In
+          values: ["one", "two"]
+    podScrapeSelector:
+      matchExpressions:
+        - key: pack
+          operator: In
+          values: ["one", "two"]
+    probeScrapeSelector:
+      matchExpressions:
+        - key: pack
+          operator: In
+          values: ["one", "two"]
+    nodeScrapeSelector:
+      matchExpressions:
+        - key: pack
+          operator: In
+          values: ["one", "two"]
+    staticScrapeSelector:
+      matchExpressions:
+        - key: pack
+          operator: In
+          values: ["one", "two"]
+    # Exclude OpenShift monitoring
+    serviceScrapeNamespaceSelector:
+      matchExpressions:
+        - key: openshift.io/cluster-monitoring
+          operator: NotIn
+          values: ["true"]
+    podScrapeNamespaceSelector:
+      matchExpressions:
+        - key: openshift.io/cluster-monitoring
+          operator: NotIn
+          values: ["true"]
+    externalLabels:
+      pack: two
+      cluster: dev-cluster
+
+  # VMSingle for Pack 2 - separate storage instance
+  vmsingle:
+    install: true
+    name: pack-two-vmsingle
+    retentionPeriod: "14d"
+    resources:
+      requests:
+        cpu: 200m
+        memory: 500Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    storage:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 50Gi
+
+  # VMAlert for Pack 2 alerting
+  vmalert:
+    install: true
+    name: pack-two-vmalert
+    resources:
+      requests:
+        cpu: 50m
+        memory: 200Mi
+      limits:
+        cpu: 200m
+        memory: 500Mi
+
+  # VMAlertManager for Pack 2
+  vmalertmanager:
+    install: true
+    name: pack-two-alertmanager
+    replicas: 1
+    resources:
+      requests:
+        cpu: 30m
+        memory: 56Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+
+# Grafana Configuration for Pack 2
+grafana:
+  install: true
+
+  operator:
+    install: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 200Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+  # Grafana instance for Pack 2
+  name: pack-two-grafana
+  config:
+    auth:
+      disable_login_form: false
+      disable_signout_menu: true
+    auth.anonymous:
+      enabled: false
+    log:
+      level: info
+      mode: console
+  security:
+    admin_password: admin
+    admin_user: admin
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  # Dashboard discovery - can discover dashboards from both packs
+  dashboardLabelSelector:
+    - matchExpressions:
+        - key: pack
+          operator: In
+          values: ["two"]
+        - key: app.kubernetes.io/component
+          operator: In
+          values: ["monitoring"]
+
+  dashboardNamespaceSelector:
+    matchExpressions:
+      - key: openshift.io/cluster-monitoring
+        operator: NotIn
+        values: ["true"]
+
+  ingress:
+    install: true
+    host: grafana-pack-two.local
+
+# Shared Infrastructure Components
+# These are typically shared between packs and should already be running from Pack 1
+
+kubeStateMetrics:
+  install: false  # Use Pack 1's instance
+
+nodeExporter:
+  install: false  # Use Pack 1's instance
+
+# GrafanaDashboards for Pack 2
+grafanaDashboards:
+  install: true
+  list:
+    - kubernetes-cluster-overview
+    - kubernetes-namespace-resources
+    - kubernetes-pod-resources
+    - kubernetes-nodes-resources
+    - alerts-overview

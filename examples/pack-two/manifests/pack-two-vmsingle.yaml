@@ -1,0 +1,77 @@
+# VMSingle for Pack 2 - DEV Team Monitoring Storage
+# This is a dedicated time-series database instance for Pack 2
+# It operates independently from Pack 1's storage, ensuring isolation
+
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMSingle
+metadata:
+  labels:
+    name: pack-two-vmsingle
+    app.kubernetes.io/name: vmsingle
+    app.kubernetes.io/component: victoriametrics
+    app.kubernetes.io/part-of: monitoring
+    app.kubernetes.io/managed-by: monitoring-operator
+    pack: two
+  name: pack-two-vmsingle
+  namespace: monitoring
+spec:
+  # Performance tuning
+  extraArgs:
+    search.maxPointsPerTimeseries: "150000"
+    # Enable deduplication (useful when scraping same target from multiple agents)
+    dedup.minScrapeInterval: "30s"
+
+  # Number of replicas
+  replicaCount: 1
+
+  # Resource allocation
+  resources:
+    requests:
+      cpu: 200m
+      memory: 500Mi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+  # Storage configuration
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+        # Uncomment and specify storageClassName if needed
+        # storageClassName: standard
+
+  # Remove PVC when VMSingle is deleted (set to false for production)
+  removePvcAfterDelete: true
+
+  # Retention period for metrics (14 days)
+  retentionPeriod: "14d"
+
+  # Security context
+  securityContext:
+    runAsUser: 2000
+    runAsGroup: 2000
+    fsGroup: 2000
+
+  # Expose VMSingle service
+  # The service will be available at: vmsingle-pack-two-vmsingle.monitoring.svc:8429
+  port: "8429"
+
+  # Optional: Insert port for vminsert API
+  insertPorts:
+    graphitePort: "2003"
+    influxPort: "8089"
+    opentsdbHTTPPort: "4242"
+    opentsdbPort: "4242"
+
+  # Optional: Ingress configuration
+  # ingress:
+  #   enabled: true
+  #   annotations:
+  #     kubernetes.io/ingress.class: nginx
+  #   hosts:
+  #     - vmsingle-pack-two.local

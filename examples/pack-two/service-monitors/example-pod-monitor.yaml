@@ -1,0 +1,37 @@
+# Example PodMonitor for Pack 2
+# PodMonitors are similar to ServiceMonitors but scrape pods directly without going through a Service
+# This is useful for monitoring applications that expose metrics but don't have a Service
+
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    app: example-pod-app
+    app.kubernetes.io/component: monitoring
+    pack: two  # Critical: This label ensures Pack 2's VMAgent discovers this PodMonitor
+  name: example-pod-app
+  namespace: dev-team
+spec:
+  # Scrape configuration
+  podMetricsEndpoints:
+    - interval: 30s
+      port: metrics
+      path: /metrics
+      scheme: http
+
+      # Optional: Relabeling
+      # relabelings:
+      #   - sourceLabels: [__meta_kubernetes_pod_name]
+      #     targetLabel: pod
+      #   - sourceLabels: [__meta_kubernetes_namespace]
+      #     targetLabel: namespace
+
+  # Selector to match pods
+  selector:
+    matchLabels:
+      app: example-pod-app
+
+  # Optional: Specify which namespaces to look for pods
+  namespaceSelector:
+    matchNames:
+      - dev-team

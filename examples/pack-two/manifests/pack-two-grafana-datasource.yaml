@@ -1,0 +1,37 @@
+# Grafana DataSource for Pack 2
+# Configures Pack 2's Grafana to query metrics from Pack 2's VMSingle instance
+
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  labels:
+    name: pack-two-datasource
+    app.kubernetes.io/name: grafana-datasource
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: monitoring
+    app.kubernetes.io/managed-by: monitoring-operator
+    pack: two
+  name: pack-two-victoriametrics
+  namespace: monitoring
+spec:
+  instanceSelector:
+    matchLabels:
+      pack: two
+
+  datasource:
+    name: VictoriaMetrics-PackTwo
+    type: prometheus
+    access: proxy
+    url: http://vmsingle-pack-two-vmsingle.monitoring.svc:8429
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 30s
+      httpMethod: POST
+      # Optional: Custom query parameters
+      # customQueryParameters: "extra_label=source:pack-two"
+    # Optional: Basic auth configuration
+    # basicAuth: false
+    # basicAuthUser: admin
+    # secureJsonData:
+    #   basicAuthPassword: password

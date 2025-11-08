@@ -1,0 +1,35 @@
+# ServiceMonitor for Node Exporter (Pack 1 Infrastructure)
+# This ServiceMonitor allows Pack 2 to scrape metrics from Pack 1's Node Exporter
+# It has pack=two label so Pack 2's VMAgent discovers it, but targets Pack 1's exporter
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: node-exporter
+    app.kubernetes.io/component: monitoring
+    pack: two  # Pack 2 VMAgent will discover this
+  name: pack-two-node-exporter
+  namespace: monitoring
+spec:
+  endpoints:
+    - interval: 30s
+      port: metrics
+      path: /metrics
+      scheme: http
+
+      # Relabeling to add pack=one label to metrics from shared infrastructure
+      relabelings:
+        - sourceLabels: [__address__]
+          targetLabel: source_pack
+          replacement: one
+
+  # Selector to match Pack 1's Node Exporter Service
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-exporter
+
+  # Target the monitoring namespace where Pack 1's exporters run
+  namespaceSelector:
+    matchNames:
+      - monitoring
